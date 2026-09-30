@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<messageStore xmlns="http://ws.apache.org/ns/synapse" name="PENDING_REQUESTS" class="com.wso2cre.asyncdemo.ExpiringConcurrentMapMessageStore">
+    <parameter name="correlationProperty">CORRELATION_ID</parameter>
+    <parameter name="expiryMillis">25000</parameter>
+    <parameter name="sweepIntervalMillis">5000</parameter>
+</messageStore>

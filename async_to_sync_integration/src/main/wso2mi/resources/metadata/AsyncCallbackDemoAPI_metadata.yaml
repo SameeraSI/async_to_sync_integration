@@ -1,0 +1,10 @@
+---
+key: "AsyncCallbackDemoAPI-1.0.0"
+name : "AsyncCallbackDemoAPI"
+displayName : "AsyncCallbackDemoAPI"
+description: "AsyncCallbackDemoAPI"
+version: "1.0.0"
+serviceUrl: "https://{MI_HOST}:{MI_PORT}/asyncdemo"
+definitionType: "OAS3"
+securityType: "BASIC"
+mutualSSLEnabled: false

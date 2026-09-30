@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/asyncdemo" name="AsyncCallbackDemoAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" uri-template="/orders" inSequence="ParkAndCallSequence">
+        <outSequence/>
+    </resource>
+    <resource methods="POST" uri-template="/callback" inSequence="CompleteRequestSequence">
+        <outSequence/>
+    </resource>
+</api>

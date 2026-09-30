@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="ParkAndCallSequence" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <property expression="get-property('MessageID')" name="CORRELATION_ID" scope="default" type="STRING"/>
+    <header name="X-Correlation-Id" scope="transport" expression="$ctx:CORRELATION_ID"/>
+    <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+    <property name="REST_URL_POSTFIX" scope="axis2" action="remove"/>
+    <store messageStore="PENDING_REQUESTS"/>
+    <call>
+        <endpoint key="BackendAckEndpoint"/>
+    </call>
+</sequence>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="CompleteRequestSequence" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+    <property expression="$trp:X-Correlation-Id" name="CORRELATION_ID" scope="default" type="STRING"/>
+    <property name="MESSAGE_STORE_NAME" scope="default" type="STRING" value="PENDING_REQUESTS"/>
+    <class name="com.wso2cre.asyncdemo.CompleteRequestMediator"/>
+    <payloadFactory media-type="json">
+        <format>{"callbackAck":true,"correlationId":"$1","status":"$2"}</format>
+        <args>
+            <arg evaluator="xml" expression="$ctx:CORRELATION_ID"/>
+            <arg evaluator="xml" expression="$ctx:COMPLETE_RESULT"/>
+        </args>
+    </payloadFactory>
+    <property name="messageType" scope="axis2" type="STRING" value="application/json"/>
+    <property name="HTTP_SC" scope="axis2" type="STRING" value="200"/>
+    <respond/>
+</sequence>
