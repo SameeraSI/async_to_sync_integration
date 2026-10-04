@@ -19,7 +19,19 @@ algorithm = "AES"
 
 ## Following are set of example configs. Please refer docs for complete set of configurations.
 
-# [transport.http]
+[transport.http]
+# Sized and load-tested for ~15-20KB callback payloads at 500 concurrent requests (see README /
+# case notes). Defaults (core=40, max=200, queue=unbounded) caused p95 latency of 4.3s+ under
+# that load; this config measured p95 ~680ms with zero request failures. core_worker_pool_size is
+# deliberately close to max_worker_pool_size - ThreadPoolExecutor only grows past core once its
+# queue is completely full, so a pool that relies on queue-triggered growth responds too slowly to
+# a concurrent burst and starts rejecting work (RejectedExecutionException) even though max
+# capacity was never reached. Re-validate these numbers against real infrastructure and real
+# payload sizes before trusting them in production - this was measured on a 10-core dev laptop.
+core_worker_pool_size = 200
+max_worker_pool_size = 250
+worker_pool_queue_length = 400
+
 # socket_timeout = 180000   # timeout in milliseconds
 # disable_connection_keepalive = false
 # connection_timeout = 90000 # in milliseconds

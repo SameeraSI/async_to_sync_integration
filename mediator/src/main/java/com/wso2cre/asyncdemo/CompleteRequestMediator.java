@@ -10,13 +10,19 @@ import org.apache.synapse.message.store.MessageStore;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Retrieves the parked MessageContext for the correlation id carried by the current (callback)
  * message from the message store named by MESSAGE_STORE_NAME, attaches the callback's JSON
  * payload to it, and completes the response on the ORIGINAL client connection retained inside
  * that parked context.
+ *
+ * The callback's JSON payload is moved across as a raw stream (JsonUtil.getJsonPayload /
+ * newJsonPayload), never materialized as a Java String - jsonPayloadToString() + re-wrapping in a
+ * ByteArrayInputStream would copy the entire payload twice for no reason, which is negligible at
+ * small sizes but measurably adds allocation/GC pressure once payloads reach the 10-20KB range
+ * under load.
  *
  * Uses MessageStore.remove(String) directly - a standard interface method - so this mediator
  * works against ANY MessageStore implementation. With ExpiringConcurrentMapMessageStore this is
@@ -77,16 +83,15 @@ public class CompleteRequestMediator extends AbstractMediator {
         try {
             org.apache.axis2.context.MessageContext callbackAxis2Ctx =
                     ((Axis2MessageContext) synCtx).getAxis2MessageContext();
-            String resultJson = JsonUtil.jsonPayloadToString(callbackAxis2Ctx);
-            if (resultJson == null) {
-                resultJson = "{}";
+            InputStream resultStream = JsonUtil.getJsonPayload(callbackAxis2Ctx);
+            if (resultStream == null) {
+                resultStream = new ByteArrayInputStream("{}".getBytes(StandardCharsets.UTF_8));
             }
 
             org.apache.axis2.context.MessageContext parkedAxis2Ctx =
                     ((Axis2MessageContext) parkedCtx).getAxis2MessageContext();
 
-            InputStream in = toInputStream(resultJson);
-            JsonUtil.newJsonPayload(parkedAxis2Ctx, in, true, true);
+            JsonUtil.newJsonPayload(parkedAxis2Ctx, resultStream, true, true);
             parkedAxis2Ctx.setProperty(Constants.Configuration.MESSAGE_TYPE, "application/json");
             parkedAxis2Ctx.setProperty(Constants.Configuration.CONTENT_TYPE, "application/json");
             parkedAxis2Ctx.setProperty("HTTP_SC", "200");
@@ -110,10 +115,6 @@ public class CompleteRequestMediator extends AbstractMediator {
         }
 
         return true;
-    }
-
-    private InputStream toInputStream(String s) throws UnsupportedEncodingException {
-        return new ByteArrayInputStream(s.getBytes("UTF-8"));
     }
 
     @Override

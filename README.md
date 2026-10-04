@@ -236,3 +236,27 @@ curl -X POST http://localhost:8290/asyncdemo/orders \
 
 Set `WORKERS=N` to scale the mock backend across CPU cores and `VERBOSE=1` for per-request logging
 when load-testing (see comments at the top of `mock-backend.js` for details).
+
+## Performance at larger payloads (10-20KB)
+
+At small payloads the pattern above is effectively free - but two things start to matter once
+callback payloads reach the 10-20KB range under concurrent load:
+
+- **`CompleteRequestMediator` moves the callback payload as a raw stream**
+  (`JsonUtil.getJsonPayload` / `newJsonPayload`), never materializing it as a Java `String`.
+  Converting to a `String` and back (as an earlier version of this code did) copies the entire
+  payload twice for no reason - negligible at small sizes, but measurable allocation/GC pressure
+  at 10-20KB under load.
+- **`deployment/deployment.toml` sizes `[transport.http]`'s worker pool** for that same payload
+  range at 500 concurrent requests. Every request still needs to briefly borrow a thread from this
+  pool for its *active* mediation (park+call, or complete) - the long wait while parked costs
+  nothing, but bigger payloads make that brief hold less brief, and the pool's default sizing
+  (`core=40, max=200, queue=unbounded`) turns that into real queueing (measured p95 ~4.3s). Sized
+  as shipped here (`core=200, max=250, queue=400`), the same test measured p95 ~680ms with zero
+  failures - see the comment in `deployment.toml` for the full numbers and a real gotcha worth
+  knowing: a pool that relies on queue-triggered growth (small `core`, small bounded `queue`)
+  starts outright rejecting work under a concurrent burst before it ever reaches `max`, because
+  `ThreadPoolExecutor` only grows past `core` once its queue is completely full.
+
+These numbers were measured on a 10-core dev machine, not production infrastructure - re-validate
+against real hardware and real payload sizes before trusting them as-is.
